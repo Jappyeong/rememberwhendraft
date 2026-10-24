@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Louveia — Interactive 3D Digital Museum</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#fde047',
+              400: '#eab308',
+              500: '#d97706',
+              600: '#b45309',
+            },
+            museum: {
+              dark: '#0a0a0c',
+              panel: '#121318',
+              card: '#1a1c23',
+              accent: '#d4af37'
+            }
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & FontAwesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Three.js Library for 3D Gallery Rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0c;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2c35;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d4af37;
+    }
+
+    /* Glassmorphism Styling */
+    .glass-panel {
+      background: rgba(18, 19, 24, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+    }
+    .glass-modal {
+      background: rgba(10, 10, 12, 0.92);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(212, 175, 55, 0.25);
+    }
+
+    /* Welcome Card Custom Design from Screenshot */
+    .welcome-card-custom {
+      width: 100%;
+      max-width: 500px;
+      background: #09090b;
+      border: 1px solid rgba(212, 143, 24, 0.35);
+      border-radius: 24px;
+      padding: 40px 32px;
+      box-sizing: border-box;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 143, 24, 0.05);
+    }
+
+    .icon-circle-custom {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 20px auto;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(212, 143, 24, 0.2) 0%, rgba(20, 20, 20, 0.8) 100%);
+      border: 1px solid rgba(212, 143, 24, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(212, 143, 24, 0.2);
+    }
+
+    .museum-title-custom {
+      font-family: "Cinzel", "Playfair Display", Georgia, serif;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: #ffffff;
+      margin: 0 0 8px 0;
+    }
+
+    .museum-subtitle-custom {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #d97706;
+      text-transform: uppercase;
+      margin: 0 0 24px 0;
+    }
+
+    .museum-description-custom {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #d1d5db;
+      max-width: 420px;
+      margin: 0 auto 32px auto;
+    }
+
+    .enter-btn-custom {
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ca5a00 0%, #eab308 100%);
+      color: #000000;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(234, 179, 8, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .enter-btn-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(234, 179, 8, 0.4);
+    }
+
+    .play-icon-custom {
+      display: inline-block;
+      transform: rotate(90deg);
+      font-size: 12px;
+    }
+
+    .quiet-link-custom {
+      display: inline-block;
+      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 13px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.2s ease;
+    }
+
+    .quiet-link-custom:hover {
+      color: #ffffff;
+    }
+
+    /* Subtle Gold Glow Effects */
+    .gold-glow {
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+    }
+    .gold-glow-hover:hover {
+      box-shadow: 0 0 25px rgba(212, 175, 55, 0.4);
+    }
+
+    canvas {
+      outline: none;
+    }
+  </style>
+</head>
+<body class="bg-museum-dark text-gray-200 font-sans antialiased overflow-x-hidden selection:bg-gold-500 selection:text-black">
+
+  <!-- ENTER MUSEUM INTERACTION MODAL (Updated to exact UI design from screenshot) -->
+  <div id="enter-museum-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl transition-opacity duration-500">
+    <div class="welcome-card-custom relative">
+      <!-- Edit Name Quick Trigger -->
+      <button onclick="openNameEditModal()" class="absolute top-4 right-4 text-gray-500 hover:text-gold-400 text-xs transition-colors" title="Customize Museum Name">
+        <i class="fa-solid fa-pen"></i>
+      </button>
+
+      <!-- Museum Icon -->
+      <div class="icon-circle-custom">
+        <svg viewBox="0 0 24 24" class="w-8 h-8 text-amber-400" fill="currentColor">
+          <path d="M12 2L2 7v2h20V7L12 2zm-8 9v8h2v-8H4zm5 0v8h2v-8H9zm5 0v8h2v-8h-2zm5 0v8h2v-8h-2zM2 20v2h20v-2H2z"/>
+        </svg>
+      </div>
+
+      <!-- Dynamic Museum Title & Subtitle -->
+      <h1 id="modal-museum-title" class="museum-title-custom uppercase">LOUVEIA</h1>
+      <p id="modal-museum-subtitle" class="museum-subtitle-custom">GRAND DIGITAL MUSEUM</p>
+
+      <!-- Description Text -->
+      <p class="museum-description-custom">
+        Step inside an immersive 3D virtual gallery experience with curated historical art, curator narration, and atmospheric background music.
+      </p>
+
+      <!-- Primary Action Button -->
+      <button onclick="enterMuseumWithAudio()" class="enter-btn-custom">
+        <span class="play-icon-custom">▲</span> ENTER MUSEUM &amp; PLAY MUSIC
+      </button>
+
+      <!-- Secondary Link -->
+      <button onclick="enterMuseumSilent()" class="quiet-link-custom bg-transparent border-0 cursor-pointer p-0">
+        Enter quietly without background music
+      </button>
+    </div>
+  </div>
+
+  <!-- CUSTOM MUSEUM NAME MODAL -->
+  <div id="name-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+    <div class="glass-modal w-full max-w-md rounded-3xl p-6 border border-gold-500/30 relative">
+      <button onclick="closeNameEditModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+      <h3 class="font-serif text-xl font-bold text-white mb-1"><i class="fa-solid fa-pen-to-square text-gold-400 mr-2"></i> Custom Branding</h3>
+      <p class="text-xs text-gray-400 mb-5">Change the museum name to personalize your gallery experience.</p>
+
+      <form onsubmit="saveCustomMuseumName(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-1">Museum Title</label>
+          <input id="input-museum-name" type="text" maxlength="24" placeholder="e.g. LOUVEIA" required class="w-full bg-museum-card border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-gold-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-1">Subtitle / Tagline</label>
+          <input id="input-museum-subtitle" type="text" maxlength="32" placeholder="e.g. Grand Digital Museum" required class="w-full bg-museum-card border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-gold-400 outline-none">
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button type="button" onclick="resetMuseumName()" class="text-xs text-gray-500 hover:text-red-400 underline">Reset Default</button>
+          <div class="space-x-2">
+            <button type="button" onclick="closeNameEditModal()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-black font-semibold text-xs transition-all">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div id="app" class="relative w-screen h-screen overflow-hidden flex flex-col">
+
+    <!-- TOP HEADER / NAVIGATION -->
+    <header class="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 py-4 glass-panel border-b border-gold-500/20">
+      <div class="flex items-center space-x-3 cursor-pointer group" onclick="openNameEditModal()">
+        <div class="w-10 h-10 rounded-full border border-gold-400/50 flex items-center justify-center bg-gold-500/10 text-gold-400 group-hover:border-gold-400">
+          <i class="fa-solid fa-landmark text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-1.5">
+            <h1 id="header-museum-title" class="font-serif text-xl tracking-wider text-white font-bold uppercase">LOUVEIA</h1>
+            <i class="fa-solid fa-pencil text-[10px] text-gray-500 group-hover:text-gold-400 transition-colors"></i>
+          </div>
+          <p id="header-museum-subtitle" class="text-[10px] tracking-widest text-gold-400 uppercase">Grand Digital Museum</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 bg-black/40 p-1 rounded-xl border border-white/5">
+        <button onclick="switchWing('renaissance')" id="nav-renaissance" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gold-400 bg-gold-500/10 border border-gold-500/30">
+          <i class="fa-solid fa-crown mr-2"></i>Renaissance
+        </button>
+        <button onclick="switchWing('modern')" id="nav-modern" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-all">
+          <i class="fa-solid fa-cubes mr-2"></i>Modern & Abstract
+        </button>
+        <button onclick="switchWing('ancient')" id="nav-ancient" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-all">
+          <i class="fa-solid fa-ankh mr-2"></i>Ancient Artifacts
+        </button>
+        <button onclick="switchWing('scifi')" id="nav-scifi" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-all">
+          <i class="fa-solid fa-atom mr-2"></i>Digital & Sci-Fi
+        </button>
+      </nav>
+
+      <!-- Action Utilities -->
+      <div class="flex items-center space-x-3">
+        <!-- Audio Ambient Control Widget -->
+        <div class="flex items-center space-x-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/10 glass-panel">
+          <button id="ambient-toggle-btn" onclick="toggleYouTubeAudio()" class="text-gray-300 hover:text-gold-400 transition-all flex items-center justify-center" title="Toggle YouTube Music">
+            <i id="ambient-icon" class="fa-solid fa-play text-xs w-4 h-4 flex items-center justify-center"></i>
+          </button>
+          
+          <div class="hidden sm:flex items-center space-x-2 text-xs">
+            <i class="fa-solid fa-music text-gold-400 text-[10px]"></i>
+            <span id="yt-track-title" class="text-[11px] text-gray-300 truncate max-w-[110px]" title="Background Music">Ambient Music</span>
+          </div>
+
+          <!-- Volume Control -->
+          <div class="hidden md:flex items-center space-x-1 pl-1 border-l border-white/10">
+            <i id="volume-icon" class="fa-solid fa-volume-high text-[10px] text-gray-400"></i>
+            <input id="yt-volume-slider" type="range" min="0" max="100" value="50" oninput="changeYouTubeVolume(this.value)" class="w-14 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-gold-400">
+          </div>
+        </div>
+
+        <!-- Off-screen standard dimensions container for YouTube Player API -->
+        <div id="yt-player-container" style="position: absolute; width: 200px; height: 200px; left: -9999px; top: -9999px; overflow: hidden; opacity: 0; pointer-events: none;">
+          <div id="yt-player"></div>
+        </div>
+
+        <!-- Guided Tour Toggle -->
+        <button id="tour-btn" onclick="toggleGuidedTour()" class="px-3.5 py-2 rounded-xl bg-gold-500/20 hover:bg-gold-500/30 text-gold-300 border border-gold-500/40 text-xs font-semibold tracking-wider uppercase transition-all flex items-center space-x-2">
+          <i class="fa-solid fa-compass animate-spin-slow"></i>
+          <span id="tour-btn-text">Guided Tour</span>
+        </button>
+
+        <!-- Personal Curator / Bookmarks -->
+        <button onclick="openPersonalCurator()" class="p-2.5 rounded-full glass-panel text-gray-300 hover:text-gold-400 transition-all border border-white/10 relative" title="My Curated Collection">
+          <i class="fa-solid fa-bookmark text-sm w-4 h-4 flex items-center justify-center"></i>
+          <span id="bookmark-badge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-gold-500 text-black text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+        </button>
+
+        <!-- Floor Plan Toggle -->
+        <button onclick="toggleMapModal()" class="p-2.5 rounded-full glass-panel text-gray-300 hover:text-gold-400 transition-all border border-white/10" title="Museum Map">
+          <i class="fa-solid fa-map text-sm w-4 h-4 flex items-center justify-center"></i>
+        </button>
+
+        <!-- Guestbook Toggle -->
+        <button onclick="openGuestbook()" class="p-2.5 rounded-full glass-panel text-gray-300 hover:text-gold-400 transition-all border border-white/10" title="Visitor Guestbook">
+          <i class="fa-solid fa-book-open text-sm w-4 h-4 flex items-center justify-center"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- 3D VIRTUAL CANVAS INTERACTION CONTAINER -->
+    <main class="relative w-full h-full">
+      <!-- ThreeJS Container -->
+      <div id="three-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+      <!-- Controls Overlay / HUD -->
+      <div class="absolute bottom-6 left-6 z-20 flex flex-col space-y-2 pointer-events-none">
+        <div class="glass-panel px-4 py-2.5 rounded-xl border border-white/10 text-xs text-gray-300 flex items-center space-x-3 pointer-events-auto">
+          <span class="flex items-center"><i class="fa-solid fa-mouse text-gold-400 mr-2"></i> Drag to look around</span>
+          <span class="text-gray-600">|</span>
+          <span class="flex items-center"><i class="fa-solid fa-hand-pointer text-gold-400 mr-2"></i> Click framed artworks to inspect</span>
+        </div>
+      </div>
+
+      <!-- Current Room Indicator -->
+      <div class="absolute bottom-6 right-6 z-20 glass-panel px-5 py-3 rounded-2xl border border-gold-500/20 text-right">
+        <p class="text-[10px] tracking-widest uppercase text-gold-400 font-semibold">Current Wing</p>
+        <h2 id="current-wing-title" class="font-serif text-lg text-white font-bold">Renaissance Classics</h2>
+      </div>
+
+      <!-- Guided Tour Banner Overlay -->
+      <div id="tour-banner" class="hidden absolute top-20 left-1/2 -translate-x-1/2 z-20 glass-modal px-6 py-3 rounded-full border border-gold-400/40 flex items-center space-x-4 shadow-2xl">
+        <div class="w-3 h-3 rounded-full bg-gold-400 animate-ping"></div>
+        <p class="text-xs font-semibold tracking-wide text-gold-200">
+          Guided Tour Active: <span id="tour-step-info" class="text-white font-normal">Loading exhibit...</span>
+        </p>
+        <button onclick="nextTourStep()" class="px-3 py-1 bg-gold-500/20 hover:bg-gold-500/40 rounded-lg text-xs text-gold-300 font-semibold border border-gold-500/30">Next Exhibit <i class="fa-solid fa-chevron-right ml-1"></i></button>
+        <button onclick="stopGuidedTour()" class="text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </main>
+
+    <!-- ARTWORK DETAIL / EXHIBIT INSPECTOR MODAL -->
+    <div id="artwork-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8 bg-black/80 backdrop-blur-md transition-all duration-300">
+      <div class="glass-modal w-full max-w-5xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl border border-gold-500/30 relative">
+        
+        <!-- Close Button -->
+        <button onclick="closeArtworkModal()" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full glass-panel flex items-center justify-center text-gray-300 hover:text-white border border-white/10 transition-all">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+
+        <!-- Left Column: Interactive Zoom Canvas / Artwork Image Display -->
+        <div class="md:w-1/2 bg-black/60 relative flex flex-col items-center justify-center p-6 border-b md:border-b-0 md:border-r border-white/10 min-h-[320px]">
+          <div class="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl border border-white/10 group">
+            <img id="modal-art-image" src="" alt="Artwork Display" class="max-h-[60vh] object-contain transition-transform duration-300 ease-out cursor-zoom-in" onclick="toggleImageZoom(this)">
+            
+            <div class="absolute bottom-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-lg text-[11px] text-gray-300 border border-white/10">
+              <i class="fa-solid fa-magnifying-glass-plus mr-1 text-gold-400"></i> Click image to toggle zoom
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Information, Provenance, Audio & Curator Notes -->
+        <div class="md:w-1/2 p-6 md:p-8 overflow-y-auto flex flex-col justify-between space-y-6">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span id="modal-art-era" class="text-xs font-semibold tracking-widest text-gold-400 uppercase bg-gold-500/10 px-3 py-1 rounded-full border border-gold-500/20">Renaissance</span>
+              <span id="modal-art-year" class="text-xs text-gray-400 font-mono">c. 1503</span>
+            </div>
+
+            <h2 id="modal-art-title" class="font-serif text-2xl md:text-3xl font-bold text-white mb-1">Mona Lisa</h2>
+            <p id="modal-art-artist" class="text-sm font-medium text-gold-300 italic mb-4">Leonardo da Vinci</p>
+
+            <!-- Audio Guide Synth Control Panel -->
+            <div class="bg-museum-card/80 p-4 rounded-2xl border border-gold-500/20 mb-6 flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <button id="audio-guide-play-btn" onclick="toggleAudioGuide()" class="w-11 h-11 rounded-full bg-gold-500 hover:bg-gold-400 text-black flex items-center justify-center transition-all shadow-lg gold-glow">
+                  <i id="audio-guide-icon" class="fa-solid fa-play text-base"></i>
+                </button>
+                <div>
+                  <p class="text-xs font-semibold text-white">Curator Audio Guide</p>
+                  <p id="audio-guide-status" class="text-[11px] text-gray-400">Synthesized audio narration</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1">
+                <span class="w-1 h-3 bg-gold-400/40 rounded-full animate-pulse"></span>
+                <span class="w-1 h-5 bg-gold-400/80 rounded-full animate-pulse delay-100"></span>
+                <span class="w-1 h-3 bg-gold-400/40 rounded-full animate-pulse delay-200"></span>
+              </div>
+            </div>
+
+            <!-- Description & Curator Analysis -->
+            <div class="space-y-4">
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Historical Overview</h4>
+                <p id="modal-art-desc" class="text-xs md:text-sm text-gray-300 leading-relaxed">Detailed historical narrative about this iconic masterpiece.</p>
+              </div>
+
+              <!-- Provenance Detail -->
+              <div class="p-3.5 rounded-xl bg-black/40 border border-white/5">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-gold-400 mb-1"><i class="fa-solid fa-shield-halved mr-1"></i> Provenance & Origin</h4>
+                <p id="modal-art-provenance" class="text-xs text-gray-400">Louvre Museum, Paris, France.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive User Actions & Favorite Bookmark -->
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between">
+            <button id="modal-bookmark-btn" onclick="toggleCurrentBookmark()" class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-gold-500/20 text-gray-300 hover:text-gold-300 border border-white/10 transition-all text-xs font-semibold flex items-center space-x-2">
+              <i id="modal-bookmark-icon" class="fa-regular fa-bookmark"></i>
+              <span id="modal-bookmark-text">Save to Personal Gallery</span>
+            </button>
+
+            <button onclick="shareExhibit()" class="p-2.5 rounded-xl glass-panel text-gray-400 hover:text-white border border-white/10 text-xs" title="Share Exhibit">
+              <i class="fa-solid fa-share-nodes"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOOR PLAN & INTERACTIVE MAP MODAL -->
+    <div id="map-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div class="glass-modal w-full max-w-3xl rounded-3xl p-6 md:p-8 border border-gold-500/30 relative">
+        <button onclick="toggleMapModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+        <h2 class="font-serif text-2xl font-bold text-white mb-1"><i class="fa-solid fa-map-location-dot text-gold-400 mr-2"></i> Interactive Floor Plan</h2>
+        <p class="text-xs text-gray-400 mb-6">Click any gallery wing on the interactive schematic to instantly teleport.</p>
+
+        <!-- Museum Floorplan Visual Layout -->
+        <div class="relative w-full h-80 bg-museum-dark rounded-2xl border border-gold-500/20 p-4 flex flex-col justify-between overflow-hidden">
+          <div class="grid grid-cols-2 gap-4 h-full">
+            <!-- Renaissance -->
+            <div onclick="switchWing('renaissance'); toggleMapModal();" class="wing-node cursor-pointer p-4 rounded-xl border border-gold-500/30 bg-gold-500/10 hover:bg-gold-500/20 transition-all flex flex-col justify-between group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gold-400">Wing A</span>
+                <i class="fa-solid fa-crown text-gold-400"></i>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-white group-hover:text-gold-300">Renaissance Classics</h3>
+                <p class="text-[11px] text-gray-400">Da Vinci, Michelangelo, Botticelli</p>
+              </div>
+            </div>
+
+            <!-- Modern -->
+            <div onclick="switchWing('modern'); toggleMapModal();" class="wing-node cursor-pointer p-4 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 transition-all flex flex-col justify-between group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-blue-400">Wing B</span>
+                <i class="fa-solid fa-cubes text-blue-400"></i>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-white group-hover:text-blue-300">Modern & Abstract</h3>
+                <p class="text-[11px] text-gray-400">Van Gogh, Picasso, Kandinsky</p>
+              </div>
+            </div>
+
+            <!-- Ancient -->
+            <div onclick="switchWing('ancient'); toggleMapModal();" class="wing-node cursor-pointer p-4 rounded-xl border border-amber-600/30 bg-amber-600/10 hover:bg-amber-600/20 transition-all flex flex-col justify-between group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-500">Wing C</span>
+                <i class="fa-solid fa-ankh text-amber-500"></i>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-white group-hover:text-amber-300">Ancient Civilizations</h3>
+                <p class="text-[11px] text-gray-400">Egypt, Greece, Mesopotamia</p>
+              </div>
+            </div>
+
+            <!-- Sci-Fi / Digital -->
+            <div onclick="switchWing('scifi'); toggleMapModal();" class="wing-node cursor-pointer p-4 rounded-xl border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 transition-all flex flex-col justify-between group">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-purple-400">Wing D</span>
+                <i class="fa-solid fa-atom text-purple-400"></i>
+              </div>
+              <div>
+                <h3 class="font-serif font-bold text-white group-hover:text-purple-300">Digital & Sci-Fi Art</h3>
+                <p class="text-[11px] text-gray-400">Generative, Cyberpunk, 3D Fractals</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSONAL CURATOR / BOOKMARKS MODAL -->
+    <div id="curator-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div class="glass-modal w-full max-w-4xl max-h-[85vh] rounded-3xl p-6 md:p-8 border border-gold-500/30 relative flex flex-col">
+        <button onclick="closePersonalCurator()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+        <div class="mb-6">
+          <h2 class="font-serif text-2xl font-bold text-white mb-1"><i class="fa-solid fa-bookmark text-gold-400 mr-2"></i> My Personal Curated Collection</h2>
+          <p class="text-xs text-gray-400">Your bookmarked masterpieces collected during your museum walkthrough.</p>
+        </div>
+
+        <!-- Bookmarked Gallery List Grid -->
+        <div id="bookmarks-grid" class="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pr-2">
+        </div>
+      </div>
+    </div>
+
+    <!-- VISITOR GUESTBOOK MODAL -->
+    <div id="guestbook-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div class="glass-modal w-full max-w-2xl rounded-3xl p-6 md:p-8 border border-gold-500/30 relative flex flex-col max-h-[85vh]">
+        <button onclick="closeGuestbook()" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+
+        <div class="mb-4">
+          <h2 class="font-serif text-2xl font-bold text-white mb-1"><i class="fa-solid fa-feather-pointed text-gold-400 mr-2"></i> Museum Guestbook</h2>
+          <p class="text-xs text-gray-400">Leave your personal note or thoughts for future visitors.</p>
+        </div>
+
+        <!-- New Guestbook Entry Form -->
+        <form onsubmit="submitGuestbookEntry(event)" class="mb-6 space-y-3 bg-black/40 p-4 rounded-2xl border border-white/10">
+          <div class="grid grid-cols-2 gap-3">
+            <input id="gb-name" type="text" placeholder="Your Name or Alias" required class="bg-museum-card border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-400 outline-none">
+            <input id="gb-location" type="text" placeholder="City / Country" required class="bg-museum-card border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-400 outline-none">
+          </div>
+          <textarea id="gb-message" placeholder="Share your museum impression..." rows="2" required class="w-full bg-museum-card border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:border-gold-400 outline-none resize-none"></textarea>
+          <button type="submit" class="w-full py-2 bg-gold-500 hover:bg-gold-400 text-black font-semibold text-xs rounded-xl transition-all shadow-md">
+            Sign Guestbook
+          </button>
+        </form>
+
+        <!-- Guestbook Messages Container -->
+        <div id="guestbook-list" class="flex-1 overflow-y-auto space-y-3 pr-2">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speech Synthesis & YouTube Audio APIs -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    /* Dynamic Museum Name State */
+    let museumBranding = {
+      name: localStorage.getItem('louveia_museum_name') || 'LOUVEIA',
+      subtitle: localStorage.getItem('louveia_museum_subtitle') || 'GRAND DIGITAL MUSEUM'
+    };
+
+    function applyMuseumBranding() {
+      const name = museumBranding.name.toUpperCase();
+      const subtitle = museumBranding.subtitle;
+
+      // Update Header
+      const headerTitle = document.getElementById('header-museum-title');
+      const headerSub = document.getElementById('header-museum-subtitle');
+      if (headerTitle) headerTitle.innerText = name;
+      if (headerSub) headerSub.innerText = subtitle;
+
+      // Update Modal
+      const modalTitle = document.getElementById('modal-museum-title');
+      const modalSub = document.getElementById('modal-museum-subtitle');
+      if (modalTitle) modalTitle.innerText = name;
+      if (modalSub) modalSub.innerText = subtitle;
+
+      // Document Title
+      document.title = `${name} — ${subtitle}`;
+    }
+
+    function openNameEditModal() {
+      document.getElementById('input-museum-name').value = museumBranding.name;
+      document.getElementById('input-museum-subtitle').value = museumBranding.subtitle;
+      document.getElementById('name-modal').classList.remove('hidden');
+    }
+
+    function closeNameEditModal() {
+      document.getElementById('name-modal').classList.add('hidden');
+    }
+
+    function saveCustomMuseumName(e) {
+      e.preventDefault();
+      const newName = document.getElementById('input-museum-name').value.trim();
+      const newSub = document.getElementById('input-museum-subtitle').value.trim();
+
+      if (newName) museumBranding.name = newName;
+      if (newSub) museumBranding.subtitle = newSub;
+
+      localStorage.setItem('louveia_museum_name', museumBranding.name);
+      localStorage.setItem('louveia_museum_subtitle', museumBranding.subtitle);
+
+      applyMuseumBranding();
+      closeNameEditModal();
+    }
+
+    function resetMuseumName() {
+      museumBranding.name = 'LOUVEIA';
+      museumBranding.subtitle = 'GRAND DIGITAL MUSEUM';
+
+      localStorage.removeItem('louveia_museum_name');
+      localStorage.removeItem('louveia_museum_subtitle');
+
+      applyMuseumBranding();
+      closeNameEditModal();
+    }
+
+    /* =========================================================================
+       MUSEUM EXHIBIT DATA COLLECTION
+       ========================================================================= */
+    const museumData = {
+      renaissance: {
+        title: "Renaissance Classics",
+        artworks: [
+          {
+            id: "mona_lisa",
+            title: "Mona Lisa",
+            artist: "Leonardo da Vinci",
+            year: "c. 1503–1519",
+            era: "Renaissance",
+            image: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80",
+            description: "The Mona Lisa is a half-length portrait painting by Italian artist Leonardo da Vinci. Considered an archetypal masterpiece of the Italian Renaissance, it has been described as 'the best known, the most visited, the most written about artwork in the world'.",
+            provenance: "Musée du Louvre, Paris (Acquired by King Francis I of France)",
+            audioText: "Welcome to da Vinci's Mona Lisa. Notice the masterful implementation of sfumato, soft transitions between colors without harsh borders, creating her enigmatic smile."
+          },
+          {
+            id: "starry_night",
+            title: "The Starry Night",
+            artist: "Vincent van Gogh",
+            year: "1889",
+            era: "Post-Impressionism",
+            image: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+            description: "Painted from the east-facing window of his asylum room at Saint-Rémy-de-Provence, just before sunrise, with the addition of an idealized village.",
+            provenance: "Museum of Modern Art (MoMA), New York",
+            audioText: "Observe the expressive, swirling brushstrokes of Van Gogh's night sky. Painted during his stay at the Saint-Paul-de-Mausole asylum, it reflects intense emotional expression."
+          },
+          {
+            id: "creation_adam",
+            title: "The Creation of Adam",
+            artist: "Michelangelo Buonarroti",
+            year: "c. 1512",
+            era: "High Renaissance",
+            image: "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?auto=format&fit=crop&w=800&q=80",
+            description: "A fresco painting forming part of the Sistine Chapel's ceiling, depicting the Biblical creation narrative from the Book of Genesis in which God gives life to Adam.",
+            provenance: "Sistine Chapel, Vatican City",
+            audioText: "This iconic fresco captures the precise moment prior to divine touch between God and Adam, symbolizing the spark of human intellect and soul."
+          }
+        ]
+      },
+      modern: {
+        title: "Modern & Abstract",
+        artworks: [
+          {
+            id: "composition_8",
+            title: "Composition VIII",
+            artist: "Wassily Kandinsky",
+            year: "1923",
+            era: "Abstract",
+            image: "https://images.unsplash.com/photo-1549887534-1541e9326642?auto=format&fit=crop&w=800&q=80",
+            description: "An arrangement of geometric shapes, lines, and vibrant color harmonies reflecting Kandinsky's synesthetic belief that colors evoke distinct musical qualities.",
+            provenance: "Solomon R. Guggenheim Museum, New York",
+            audioText: "Kandinsky believed visual art could resonate like music. Notice how circles, triangles, and rhythmic lines form a visual symphony."
+          },
+          {
+            id: "persistence_memory",
+            title: "The Persistence of Memory",
+            artist: "Salvador Dalí",
+            year: "1931",
+            era: "Surrealism",
+            image: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=800&q=80",
+            description: "Famous surrealist depiction of melting pocket watches in a dreamlike landscape, exploring concepts of time, relativity, and subconscious realms.",
+            provenance: "Museum of Modern Art, NYC",
+            audioText: "Dalí's soft melting watches challenge the rigid concept of cosmic time, juxtaposed against the stark, surreal cliffs of his native Catalonia."
+          }
+        ]
+      },
+      ancient: {
+        title: "Ancient Civilizations",
+        artworks: [
+          {
+            id: "tutankhamun_mask",
+            title: "Gold Mask of Tutankhamun",
+            artist: "Ancient Egyptian Royal Artisans",
+            year: "c. 1323 BC",
+            era: "Ancient Egypt",
+            image: "https://images.unsplash.com/photo-1568667256549-094345857637?auto=format&fit=crop&w=800&q=80",
+            description: "The death mask of Tutankhamun, crafted from solid gold inlaid with lapis lazuli, turquoise, and carnelian. Symbolizes eternal divine power.",
+            provenance: "Egyptian Museum, Cairo",
+            audioText: "Crafted over three thousand years ago, this solid gold funerary mask protected King Tutankhamun's spirit in the afterlife journey."
+          },
+          {
+            id: "greek_sculpture",
+            title: "Winged Victory of Samothrace",
+            artist: "Hellenistic Sculptor",
+            year: "c. 190 BC",
+            era: "Ancient Greece",
+            image: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80",
+            description: "A monumental marble sculpture of Nike, goddess of victory, carved during the Hellenistic era with dramatic flowing drapery.",
+            provenance: "Louvre Museum, Paris",
+            audioText: "Notice the dynamic motion captured in cold marble—the wind-swept drapery creates an illusion of a goddess descending onto a ship's prow."
+          }
+        ]
+      },
+      scifi: {
+        title: "Digital & Sci-Fi Art",
+        artworks: [
+          {
+            id: "cyber_metropolis",
+            title: "Neo-Tokyo Metropolis 2099",
+            artist: "Aether AI Labs & Digital Artisans",
+            year: "2026",
+            era: "Digital Sci-Fi",
+            image: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=800&q=80",
+            description: "A futuristic cyberpunk cityscape exploration generated using neural artistic synthesis, exploring hyper-urbanization and neon light refraction.",
+            provenance: "Louveia Cyber Gallery Collection",
+            audioText: "Stepping into the digital wing, this piece utilizes algorithmic ray tracing to simulate light reflections in futuristic urban ecosystems."
+          },
+          {
+            id: "quantum_fractal",
+            title: "Quantum Consciousness",
+            artist: "Nexus Generative Studio",
+            year: "2025",
+            era: "Generative Art",
+            image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
+            description: "High-dimensional mathematical fractal sculpture rendered through volumetric fluid dynamics.",
+            provenance: "Digital Art Archive",
+            audioText: "Generative mathematical equations rendered into visual form, representing multi-dimensional quantum states."
+          }
+        ]
+      }
+    };
+
+    /* App State Variables */
+    let currentWingKey = 'renaissance';
+    let activeArtwork = null;
+    let bookmarks = new Set();
+    let guestbookEntries = [
+      { name: "Eleanor Vance", location: "London, UK", message: "The ambient gallery music and 3D lighting create a surreal, timeless experience." },
+      { name: "Mateo Rossi", location: "Florence, Italy", message: "Inspecting Michelangelo's works in this digital environment is truly breathtaking." }
+    ];
+
+    /* Guided Tour State */
+    let isTourActive = false;
+    let tourIndex = 0;
+    let tourList = [];
+
+    /* Speech Synthesis Synth Audio Guide */
+    let isAudioPlaying = false;
+    let synthUtterance = null;
+
+    /* YouTube Iframe Audio Player Integration */
+    let ytPlayer = null;
+    let isYTPlaying = false;
+    let ytPlayerReady = false;
+    let ytVideoId = "N1VtT2Tz614";
+
+    // Called automatically when YouTube Iframe API is loaded
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('yt-player', {
+        height: '200',
+        width: '200',
+        videoId: ytVideoId,
+        playerVars: {
+          'autoplay': 0,
+          'controls': 0,
+          'loop': 1,
+          'playlist': ytVideoId,
+          'playsinline': 1,
+          'enablejsapi': 1,
+          'origin': window.location.origin || '*'
+        },
+        events: {
+          'onReady': onYTPlayerReady,
+          'onStateChange': onYTPlayerStateChange,
+          'onError': onYTPlayerError
+        }
+      });
+    }
+
+    function onYTPlayerReady(event) {
+      ytPlayerReady = true;
+      try {
+        event.target.setVolume(50);
+      } catch (e) {
+        console.warn("Volume set deferred:", e);
+      }
+      updateYTUI();
+    }
+
+    function onYTPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        isYTPlaying = true;
+      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+        isYTPlaying = false;
+      }
+      updateYTUI();
+    }
+
+    function onYTPlayerError(event) {
+      console.warn("YouTube player encountered an error code:", event.data);
+      const trackTitle = document.getElementById('yt-track-title');
+      if (trackTitle) trackTitle.innerText = "Audio Restricted";
+    }
+
+    function enterMuseumWithAudio() {
+      document.getElementById('enter-museum-modal').classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        document.getElementById('enter-museum-modal').classList.add('hidden');
+      }, 500);
+
+      // Trigger playback from user gesture
+      if (ytPlayer && ytPlayerReady && typeof ytPlayer.playVideo === 'function') {
+        ytPlayer.unMute();
+        ytPlayer.playVideo();
+      } else {
+        // Fallback retry if player API was slightly delayed
+        let attempts = 0;
+        const timer = setInterval(() => {
+          attempts++;
+          if (ytPlayer && ytPlayerReady && typeof ytPlayer.playVideo === 'function') {
+            ytPlayer.unMute();
+            ytPlayer.playVideo();
+            clearInterval(timer);
+          } else if (attempts > 10) {
+            clearInterval(timer);
+          }
+        }, 300);
+      }
+    }
+
+    function enterMuseumSilent() {
+      document.getElementById('enter-museum-modal').classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        document.getElementById('enter-museum-modal').classList.add('hidden');
+      }, 500);
+    }
+
+    function toggleYouTubeAudio() {
+      if (!ytPlayer || !ytPlayerReady || typeof ytPlayer.playVideo !== 'function') return;
+
+      if (isYTPlaying) {
+        ytPlayer.pauseVideo();
+      } else {
+        ytPlayer.unMute();
+        ytPlayer.playVideo();
+      }
+    }
+
+    function changeYouTubeVolume(val) {
+      if (ytPlayer && ytPlayerReady && typeof ytPlayer.setVolume === 'function') {
+        ytPlayer.setVolume(val);
+      }
+      const volIcon = document.getElementById('volume-icon');
+      if (volIcon) {
+        if (val == 0) {
+          volIcon.className = "fa-solid fa-volume-xmark text-[10px] text-gray-500";
+        } else if (val < 50) {
+          volIcon.className = "fa-solid fa-volume-low text-[10px] text-gray-400";
+        } else {
+          volIcon.className = "fa-solid fa-volume-high text-[10px] text-gray-400";
+        }
+      }
+    }
+
+    function updateYTUI() {
+      const icon = document.getElementById('ambient-icon');
+      const trackTitle = document.getElementById('yt-track-title');
+
+      if (isYTPlaying) {
+        if (icon) icon.className = "fa-solid fa-pause text-xs text-gold-400 w-4 h-4 flex items-center justify-center";
+        if (trackTitle) {
+          let title = "Ambient Music";
+          if (ytPlayer && typeof ytPlayer.getVideoData === 'function') {
+            const data = ytPlayer.getVideoData();
+            if (data && data.title) title = data.title;
+          }
+          trackTitle.innerText = title;
+        }
+      } else {
+        if (icon) icon.className = "fa-solid fa-play text-xs w-4 h-4 flex items-center justify-center";
+      }
+    }
+
+    /* =========================================================================
+       THREE.JS 3D VIRTUAL GALLERY ENVIRONMENT
+       ========================================================================= */
+    let scene, camera, renderer, roomGroup;
+    let interactiveMeshes = [];
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let targetRotationY = 0;
+
+    function init3DGallery() {
+      const container = document.getElementById('three-container');
+
+      // 1. Scene Setup
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+      scene.fog = new THREE.FogExp2(0x0a0a0c, 0.035);
+
+      // 2. Camera Setup
+      camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(0, 1.6, 3.8);
+
+      // 3. Renderer Setup
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // 4. Lighting Configuration
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+
+      // Spotlights over artwork walls
+      const warmSpotlight = new THREE.SpotLight(0xd4af37, 1.5);
+      warmSpotlight.position.set(0, 5, 2);
+      warmSpotlight.angle = Math.PI / 3;
+      warmSpotlight.penumbra = 0.5;
+      scene.add(warmSpotlight);
+
+      // Room mesh group
+      roomGroup = new THREE.Group();
+      scene.add(roomGroup);
+
+      // Build Room Structure
+      buildGalleryArchitecture();
+
+      // Populate Artworks for current wing
+      loadWingArtworks(currentWingKey);
+
+      // Event Listeners for Interaction
+      window.addEventListener('resize', onWindowResize);
+      
+      const canvasEl = renderer.domElement;
+      canvasEl.addEventListener('mousedown', onMouseDown);
+      canvasEl.addEventListener('mousemove', onMouseMove);
+      canvasEl.addEventListener('mouseup', onMouseUp);
+      canvasEl.addEventListener('click', onCanvasClick);
+
+      // Mobile Touch Support
+      canvasEl.addEventListener('touchstart', (e) => {
+        if(e.touches.length === 1) {
+          isDragging = true;
+          previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+      });
+      canvasEl.addEventListener('touchmove', (e) => {
+        if(isDragging && e.touches.length === 1) {
+          const deltaX = e.touches[0].clientX - previousMousePosition.x;
+          targetRotationY += deltaX * 0.005;
+          previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+      });
+      canvasEl.addEventListener('touchend', () => isDragging = false);
+
+      // Render Loop
+      animate();
+    }
+
+    /* Build Museum Architectural Enclosure */
+    function buildGalleryArchitecture() {
+      // Floor - Dark polished marble texture simulator
+      const floorGeo = new THREE.PlaneGeometry(16, 16);
+      const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x121318, 
+        roughness: 0.2, 
+        metalness: 0.5 
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      scene.add(floor);
+
+      // Walls
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.8 });
+      
+      // Back Wall
+      const backWall = new THREE.Mesh(new THREE.PlaneGeometry(16, 8), wallMat);
+      backWall.position.set(0, 4, -5);
+      scene.add(backWall);
+
+      // Left Wall
+      const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(16, 8), wallMat);
+      leftWall.position.set(-8, 4, 0);
+      leftWall.rotation.y = Math.PI / 2;
+      scene.add(leftWall);
+
+      // Right Wall
+      const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(16, 8), wallMat);
+      rightWall.position.set(8, 4, 0);
+      rightWall.rotation.y = -Math.PI / 2;
+      scene.add(rightWall);
+
+      // Gold Trim Moldings along floor
+      const trimGeo = new THREE.BoxGeometry(16, 0.1, 0.1);
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.3 });
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      trim.position.set(0, 0.05, -4.95);
+      scene.add(trim);
+    }
+
+    /* Populate Framed Artworks dynamically into 3D scene */
+    function loadWingArtworks(wingKey) {
+      // Clear previous frames
+      interactiveMeshes.forEach(m => roomGroup.remove(m));
+      interactiveMeshes = [];
+
+      const artworks = museumData[wingKey].artworks;
+      const textureLoader = new THREE.TextureLoader();
+
+      // Coordinates for placing art on back wall
+      const total = artworks.length;
+      const spacing = 3.2;
+      const startX = -((total - 1) * spacing) / 2;
+
+      artworks.forEach((art, idx) => {
+        const xPos = startX + (idx * spacing);
+
+        // Frame Outer Border
+        const frameGeo = new THREE.BoxGeometry(2.2, 2.8, 0.1);
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.3 });
+        const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+        frameMesh.position.set(xPos, 2.2, -4.85);
+
+        // Canvas Surface Texture
+        const canvasGeo = new THREE.PlaneGeometry(1.9, 2.5);
+        
+        // Load image or fallback color canvas
+        textureLoader.load(
+          art.image,
+          (texture) => {
+            const canvasMat = new THREE.MeshBasicMaterial({ map: texture });
+            const canvasMesh = new THREE.Mesh(canvasGeo, canvasMat);
+            canvasMesh.position.set(0, 0, 0.06);
+            frameMesh.add(canvasMesh);
+          },
+          undefined,
+          () => {
+            const canvasMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+            const canvasMesh = new THREE.Mesh(canvasGeo, canvasMat);
+            canvasMesh.position.set(0, 0, 0.06);
+            frameMesh.add(canvasMesh);
+          }
+        );
+
+        // Store exhibit reference inside mesh userData
+        frameMesh.userData = { artwork: art };
+        
+        roomGroup.add(frameMesh);
+        interactiveMeshes.push(frameMesh);
+
+        // Spotlight dedicated to artwork
+        const artSpot = new THREE.SpotLight(0xfff5ea, 1.8, 8, Math.PI / 6, 0.4);
+        artSpot.position.set(xPos, 4.5, -3);
+        artSpot.target = frameMesh;
+        roomGroup.add(artSpot);
+      });
+    }
+
+    /* 3D Render Loop */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Smooth Rotation Lerp
+      roomGroup.rotation.y += (targetRotationY - roomGroup.rotation.y) * 0.05;
+
+      renderer.render(scene, camera);
+    }
+
+    /* Mouse & Drag Controls */
+    function onMouseDown(e) {
+      isDragging = true;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    }
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      const deltaX = e.clientX - previousMousePosition.x;
+      targetRotationY += deltaX * 0.004;
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+    }
+
+    /* Click Detection via Raycasting */
+    function onCanvasClick(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(interactiveMeshes);
+
+      if (intersects.length > 0) {
+        const clickedFrame = intersects[0].object;
+        if (clickedFrame.userData && clickedFrame.userData.artwork) {
+          openArtworkModal(clickedFrame.userData.artwork);
+        }
+      }
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('three-container');
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    /* =========================================================================
+       WING & EXHIBIT NAVIGATION
+       ========================================================================= */
+    function switchWing(wingKey) {
+      if (!museumData[wingKey]) return;
+      currentWingKey = wingKey;
+
+      // Update Header Tab UI
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.className = "nav-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white transition-all";
+      });
+      const activeNav = document.getElementById(`nav-${wingKey}`);
+      if(activeNav) {
+        activeNav.className = "nav-btn px-4 py-2 rounded-lg text-sm font-medium transition-all text-gold-400 bg-gold-500/10 border border-gold-500/30";
+      }
+
+      // Update Room Label
+      document.getElementById('current-wing-title').innerText = museumData[wingKey].title;
+
+      // Reset camera rotation smoothly
+      targetRotationY = 0;
+
+      // Reload 3D Artworks
+      loadWingArtworks(wingKey);
+    }
+
+    /* =========================================================================
+       ARTWORK MODAL & AUDIO GUIDE SYNTHESIS
+       ========================================================================= */
+    function openArtworkModal(artwork) {
+      activeArtwork = artwork;
+
+      document.getElementById('modal-art-title').innerText = artwork.title;
+      document.getElementById('modal-art-artist').innerText = artwork.artist;
+      document.getElementById('modal-art-year').innerText = artwork.year;
+      document.getElementById('modal-art-era').innerText = artwork.era;
+      document.getElementById('modal-art-desc').innerText = artwork.description;
+      document.getElementById('modal-art-provenance').innerText = artwork.provenance;
+      document.getElementById('modal-art-image').src = artwork.image;
+
+      // Update Bookmark Button state inside modal
+      updateModalBookmarkUI();
+
+      // Reset Audio Guide Synth
+      stopAudioGuide();
+
+      document.getElementById('artwork-modal').classList.remove('hidden');
+    }
+
+    function closeArtworkModal() {
+      stopAudioGuide();
+      document.getElementById('artwork-modal').classList.add('hidden');
+      activeArtwork = null;
+    }
+
+    /* Zoom Toggle for Artwork Inspection */
+    function toggleImageZoom(imgEl) {
+      if (imgEl.classList.contains('scale-150')) {
+        imgEl.classList.remove('scale-150', 'z-30');
+        imgEl.classList.add('cursor-zoom-in');
+      } else {
+        imgEl.classList.add('scale-150', 'z-30');
+        imgEl.classList.remove('cursor-zoom-in');
+      }
+    }
+
+    /* Synthesized Curator Speech Audio Guide */
+    function toggleAudioGuide() {
+      if (isAudioPlaying) {
+        stopAudioGuide();
+      } else {
+        startAudioGuide();
+      }
+    }
+
+    function startAudioGuide() {
+      if (!activeArtwork || !('speechSynthesis' in window)) {
+        return;
+      }
+
+      window.speechSynthesis.cancel(); // Stop any pending speech
+
+      synthUtterance = new SpeechSynthesisUtterance(activeArtwork.audioText);
+      synthUtterance.rate = 0.9;
+      synthUtterance.pitch = 1.0;
+
+      synthUtterance.onend = () => {
+        isAudioPlaying = false;
+        document.getElementById('audio-guide-icon').className = "fa-solid fa-play text-base";
+        document.getElementById('audio-guide-status').innerText = "Audio guide completed";
+      };
+
+      window.speechSynthesis.speak(synthUtterance);
+      isAudioPlaying = true;
+      document.getElementById('audio-guide-icon').className = "fa-solid fa-pause text-base";
+      document.getElementById('audio-guide-status').innerText = "Playing curator narration...";
+    }
+
+    function stopAudioGuide() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isAudioPlaying = false;
+      const icon = document.getElementById('audio-guide-icon');
+      if (icon) icon.className = "fa-solid fa-play text-base";
+      const status = document.getElementById('audio-guide-status');
+      if (status) status.innerText = "Synthesized audio narration";
+    }
+
+    /* =========================================================================
+       PERSONAL CURATOR & BOOKMARKS
+       ========================================================================= */
+    function toggleCurrentBookmark() {
+      if (!activeArtwork) return;
+
+      if (bookmarks.has(activeArtwork.id)) {
+        bookmarks.delete(activeArtwork.id);
+      } else {
+        bookmarks.add(activeArtwork.id);
+      }
+
+      updateModalBookmarkUI();
+      updateBookmarkBadge();
+    }
+
+    function updateModalBookmarkUI() {
+      const btnIcon = document.getElementById('modal-bookmark-icon');
+      const btnText = document.getElementById('modal-bookmark-text');
+
+      if (activeArtwork && bookmarks.has(activeArtwork.id)) {
+        btnIcon.className = "fa-solid fa-bookmark text-gold-400";
+        btnText.innerText = "Saved in Collection";
+      } else {
+        btnIcon.className = "fa-regular fa-bookmark";
+        btnText.innerText = "Save to Personal Gallery";
+      }
+    }
+
+    function updateBookmarkBadge() {
+      const badge = document.getElementById('bookmark-badge');
+      if (bookmarks.size > 0) {
+        badge.innerText = bookmarks.size;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function openPersonalCurator() {
+      const grid = document.getElementById('bookmarks-grid');
+      grid.innerHTML = '';
+
+      if (bookmarks.size === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-gray-500">
+            <i class="fa-solid fa-bookmark text-3xl mb-3 text-gold-500/30"></i>
+            <p class="text-sm">No artworks saved to your collection yet.</p>
+            <p class="text-xs mt-1">Click "Save to Personal Gallery" while viewing exhibits.</p>
+          </div>
+        `;
+      } else {
+        Object.values(museumData).forEach(wing => {
+          wing.artworks.forEach(art => {
+            if (bookmarks.has(art.id)) {
+              const card = document.createElement('div');
+              card.className = "bg-museum-card rounded-2xl p-4 border border-gold-500/20 flex flex-col justify-between group";
+              card.innerHTML = `
+                <div class="overflow-hidden rounded-xl h-40 mb-3 bg-black">
+                  <img src="${art.image}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300">
+                </div>
+                <div>
+                  <h4 class="font-serif font-bold text-white text-sm">${art.title}</h4>
+                  <p class="text-xs text-gold-300 italic mb-2">${art.artist}</p>
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-white/5">
+                  <button onclick="openArtworkModalById('${art.id}')" class="text-xs text-gold-400 hover:underline font-semibold">Inspect</button>
+                  <button onclick="removeBookmark('${art.id}')" class="text-xs text-gray-500 hover:text-red-400"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              `;
+              grid.appendChild(card);
+            }
+          });
+        });
+      }
+
+      document.getElementById('curator-modal').classList.remove('hidden');
+    }
+
+    function closePersonalCurator() {
+      document.getElementById('curator-modal').classList.add('hidden');
+    }
+
+    function removeBookmark(id) {
+      bookmarks.delete(id);
+      updateBookmarkBadge();
+      openPersonalCurator();
+    }
+
+    function openArtworkModalById(id) {
+      closePersonalCurator();
+      Object.values(museumData).forEach(wing => {
+        wing.artworks.forEach(art => {
+          if (art.id === id) {
+            openArtworkModal(art);
+          }
+        });
+      });
+    }
+
+    /* =========================================================================
+       GUIDED VIRTUAL TOUR MODE
+       ========================================================================= */
+    function toggleGuidedTour() {
+      if (isTourActive) {
+        stopGuidedTour();
+      } else {
+        startGuidedTour();
+      }
+    }
+
+    function startGuidedTour() {
+      isTourActive = true;
+      tourIndex = 0;
+
+      tourList = [];
+      Object.keys(museumData).forEach(wingKey => {
+        museumData[wingKey].artworks.forEach(art => {
+          tourList.push({ wingKey, artwork: art });
+        });
+      });
+
+      document.getElementById('tour-btn').classList.add('bg-gold-500', 'text-black');
+      document.getElementById('tour-btn-text').innerText = "Stop Tour";
+      document.getElementById('tour-banner').classList.remove('hidden');
+
+      executeTourStep();
+    }
+
+    function executeTourStep() {
+      if (!isTourActive || tourIndex >= tourList.length) {
+        stopGuidedTour();
+        return;
+      }
+
+      const item = tourList[tourIndex];
+      switchWing(item.wingKey);
+
+      document.getElementById('tour-step-info').innerText = `${item.artwork.title} (${tourIndex + 1}/${tourList.length})`;
+
+      setTimeout(() => {
+        openArtworkModal(item.artwork);
+        startAudioGuide();
+      }, 600);
+    }
+
+    function nextTourStep() {
+      tourIndex++;
+      executeTourStep();
+    }
+
+    function stopGuidedTour() {
+      isTourActive = false;
+      document.getElementById('tour-btn').classList.remove('bg-gold-500', 'text-black');
+      document.getElementById('tour-btn-text').innerText = "Guided Tour";
+      document.getElementById('tour-banner').classList.add('hidden');
+      stopAudioGuide();
+    }
+
+    /* =========================================================================
+       FLOOR PLAN MODAL
+       ========================================================================= */
+    function toggleMapModal() {
+      const modal = document.getElementById('map-modal');
+      modal.classList.toggle('hidden');
+    }
+
+    /* =========================================================================
+       GUESTBOOK LOGIC
+       ========================================================================= */
+    function openGuestbook() {
+      renderGuestbookEntries();
+      document.getElementById('guestbook-modal').classList.remove('hidden');
+    }
+
+    function closeGuestbook() {
+      document.getElementById('guestbook-modal').classList.add('hidden');
+    }
+
+    function renderGuestbookEntries() {
+      const list = document.getElementById('guestbook-list');
+      list.innerHTML = '';
+
+      guestbookEntries.forEach(entry => {
+        const item = document.createElement('div');
+        item.className = "p-3.5 bg-museum-card rounded-xl border border-white/5 space-y-1";
+        item.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-gold-300">${escapeHtml(entry.name)}</span>
+            <span class="text-[10px] text-gray-500">${escapeHtml(entry.location)}</span>
+          </div>
+          <p class="text-xs text-gray-300 italic font-serif">"${escapeHtml(entry.message)}"</p>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function submitGuestbookEntry(e) {
+      e.preventDefault();
+      const name = document.getElementById('gb-name').value;
+      const location = document.getElementById('gb-location').value;
+      const message = document.getElementById('gb-message').value;
+
+      guestbookEntries.unshift({ name, location, message });
+      renderGuestbookEntries();
+
+      document.getElementById('gb-name').value = '';
+      document.getElementById('gb-location').value = '';
+      document.getElementById('gb-message').value = '';
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    /* Share exhibit link simulation */
+    function shareExhibit() {
+      if(!activeArtwork) return;
+      const tempInput = document.createElement('input');
+      tempInput.value = `Discover "${activeArtwork.title}" at Louveia Digital Museum!`;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+    }
+
+    /* Initialize Application on Window Load */
+    window.onload = function() {
+      applyMuseumBranding();
+      init3DGallery();
+      updateBookmarkBadge();
+    };
+  </script>
+</body>
+</html>
